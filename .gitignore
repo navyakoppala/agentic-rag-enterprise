@@ -28,3 +28,5 @@ chroma_db/
 .env
 *.pyc
 .DS_Store
+.streamlit/secrets.toml
+.env

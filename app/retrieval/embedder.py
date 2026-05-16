@@ -1,29 +1,20 @@
 from sentence_transformers import SentenceTransformer
 
-model = SentenceTransformer('all-MiniLM-L6-v2')
+def get_embedding_model():
 
+    model = SentenceTransformer(
+        "BAAI/bge-base-en-v1.5"
+    )
 
-def chunk_text(text, chunk_size=500, overlap=100):
-
-    chunks = []
-
-    start = 0
-
-    while start < len(text):
-
-        end = start + chunk_size
-
-        chunk = text[start:end]
-
-        chunks.append(chunk)
-
-        start += chunk_size - overlap
-
-    return chunks
+    return model
 
 
 def create_embeddings(chunks):
 
-    embeddings = model.encode(chunks)
+    model = get_embedding_model()
+
+    embeddings = model.encode(
+        chunks
+    ).tolist()
 
     return embeddings

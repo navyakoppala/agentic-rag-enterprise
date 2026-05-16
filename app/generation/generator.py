@@ -1,44 +1,50 @@
 import os
 
-from dotenv import load_dotenv
-from google import genai
+import google.generativeai as genai
 
+from dotenv import load_dotenv
+
+# LOAD ENV
 load_dotenv()
 
-API_KEY = os.getenv("GEMINI_API_KEY")
+# CONFIGURE GEMINI
+genai.configure(
+    api_key=os.getenv(
+        "GEMINI_API_KEY"
+    )
+)
 
-client = genai.Client(api_key=API_KEY)
+# CREATE MODEL
+model = genai.GenerativeModel(
+    model_name="gemini-2.5-flash"
+)
 
-
-def generate_answer(question, context):
-
-    combined_context = "\n".join(context)
+# GENERATE ANSWER
+def generate_answer(
+    question,
+    context
+):
 
     prompt = f"""
-You are an enterprise AI assistant.
+You are an intelligent enterprise AI assistant.
 
 Answer ONLY from the provided context.
 
-If the answer is not present in the context,
+If answer is not found in context,
 say:
-"I could not find this information in the enterprise documents."
+'I could not find this information in the document.'
 
 Context:
-{combined_context}
+{context}
 
 Question:
 {question}
+
+Provide concise professional answers.
 """
 
-    try:
+    response = model.generate_content(
+        prompt
+    )
 
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt
-        )
-
-        return response.text
-
-    except Exception as e:
-
-        return f"API Error: {str(e)}"
+    return response.text

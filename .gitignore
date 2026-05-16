@@ -1,4 +1,30 @@
-venv/
-.env
+# Python cache
 __pycache__/
+*.pyc
+
+# Virtual env
+.venv/
+venv/
+
+# Environment variables
+.env
+
+# Vector DB
 vector_store/
+
+# Streamlit cache
+.streamlit/
+
+# Logs
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+.venv/
+__pycache__/
+chroma_db/
+.env
+*.pyc
+.DS_Store

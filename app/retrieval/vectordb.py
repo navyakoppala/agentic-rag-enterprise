@@ -1,17 +1,28 @@
 import chromadb
 
-client = chromadb.PersistentClient(path="./vector_store")
+client = chromadb.PersistentClient(
+    path="./chroma_db"
+)
 
 collection = client.get_or_create_collection(
-    name="enterprise_knowledge"
+    name="rag_collection"
 )
 
 
-def store_chunks(chunks):
+def store_embeddings(
+    chunks,
+    embeddings
+):
 
-    for idx, chunk in enumerate(chunks):
+    collection.add(
+        documents=chunks,
 
-        collection.add(
-            documents=[chunk],
-            ids=[str(idx)]
-        )
+        embeddings=embeddings,
+
+        ids=[
+            str(i)
+            for i in range(
+                len(chunks)
+            )
+        ]
+    )

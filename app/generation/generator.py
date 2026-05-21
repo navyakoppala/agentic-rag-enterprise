@@ -1,8 +1,8 @@
 import os
 
 import google.generativeai as genai
-
 from dotenv import load_dotenv
+
 
 # LOAD ENV
 load_dotenv()

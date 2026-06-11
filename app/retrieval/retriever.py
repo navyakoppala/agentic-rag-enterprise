@@ -2,21 +2,34 @@ from app.retrieval.embedder import (
     get_embedding_model
 )
 
-from app.retrieval.vectordb import (
-    collection
-)
-
 from app.retrieval.reranker import (
     rerank_documents
 )
 
+import chromadb
+
 
 def retrieve_context(question):
+
+    if not question:
+
+        return {
+            "documents": [],
+            "metadata": []
+        }
+
+    client = chromadb.PersistentClient(
+        path="./vector_store"
+    )
+
+    collection = client.get_collection(
+        "enterprise_docs"
+    )
 
     model = get_embedding_model()
 
     query_embedding = model.encode(
-        question
+        str(question)
     ).tolist()
 
     results = collection.query(
@@ -25,6 +38,7 @@ def retrieve_context(question):
         ],
         n_results=10
     )
+    distances = results["distances"][0]
 
     documents = results["documents"][0]
 
@@ -33,8 +47,19 @@ def retrieve_context(question):
         documents
     )
 
-    context = "\n".join(
-        top_docs
-    )
+    metadata = []
 
-    return context
+    if "metadatas" in results:
+
+        for item in results["metadatas"][0]:
+
+            metadata.append(
+                item
+            )
+    top_metadata = results["metadatas"][0]
+
+    return {
+    "documents": top_docs,
+    "metadata": top_metadata,
+    "distance": distances[0]
+}

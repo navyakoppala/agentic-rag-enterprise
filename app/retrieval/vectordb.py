@@ -1,11 +1,7 @@
 import chromadb
 
 client = chromadb.PersistentClient(
-    path="./chroma_db"
-)
-
-collection = client.get_or_create_collection(
-    name="rag_collection"
+    path="./vector_store"
 )
 
 
@@ -14,15 +10,38 @@ def store_embeddings(
     embeddings
 ):
 
-    collection.add(
-        documents=chunks,
+    try:
+        client.delete_collection(
+            "enterprise_docs"
+        )
+    except:
+        pass
 
-        embeddings=embeddings,
-
-        ids=[
-            str(i)
-            for i in range(
-                len(chunks)
-            )
-        ]
+    collection = client.create_collection(
+        name="enterprise_docs"
     )
+
+    ids = [
+        str(i)
+        for i in range(len(chunks))
+    ]
+
+    metadatas = []
+
+    for i in range(len(chunks)):
+
+        metadatas.append(
+            {
+                "source": "Uploaded PDF",
+                "chunk_id": i
+            }
+        )
+
+    collection.add(
+        ids=ids,
+        documents=chunks,
+        embeddings=embeddings,
+        metadatas=metadatas
+    )
+
+    return collection

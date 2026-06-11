@@ -1,50 +1,84 @@
 import os
 
-import google.generativeai as genai
+from groq import Groq
 from dotenv import load_dotenv
 
-
-# LOAD ENV
 load_dotenv()
 
-# CONFIGURE GEMINI
-genai.configure(
+client = Groq(
     api_key=os.getenv(
-        "GEMINI_API_KEY"
+        "GROQ_API_KEY"
     )
 )
 
-# CREATE MODEL
-model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash"
-)
 
-# GENERATE ANSWER
 def generate_answer(
     question,
-    context
+    context,
+    history=""
 ):
 
     prompt = f"""
-You are an intelligent enterprise AI assistant.
+You are an Enterprise AI Document Assistant.
 
-Answer ONLY from the provided context.
+Your job is to answer ONLY using the provided document context.
 
-If answer is not found in context,
-say:
-'I could not find this information in the document.'
+Conversation History:
+{history}
 
-Context:
+Retrieved Context:
 {context}
 
-Question:
+User Question:
 {question}
 
-Provide concise professional answers.
+Rules:
+
+Instructions:
+
+1. Answer using document context.
+2. If user asks analysis or interpretation,
+   use retrieved values to infer.
+3. Do not hallucinate.
+4. If information is completely absent,
+   say:
+   "I could not find this information in the document."
+
+Answer:
 """
 
-    response = model.generate_content(
-        prompt
-    )
+    try:
 
-    return response.text
+        response = client.chat.completions.create(
+
+            model=os.getenv(
+                "MODEL_NAME",
+                "llama-3.3-70b-versatile"
+            ),
+
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+
+            temperature=0.1,
+
+            max_tokens=1024
+        )
+
+        answer = (
+            response
+            .choices[0]
+            .message
+            .content
+        )
+
+        return answer
+
+    except Exception as e:
+
+        return (
+            f"Generation Error: {str(e)}"
+        )

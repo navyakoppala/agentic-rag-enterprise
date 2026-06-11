@@ -3,180 +3,216 @@ import streamlit as st
 from app.ingestion.loader import load_pdf
 from app.ingestion.chunker import chunk_documents
 
-from app.retrieval.embedder import (
-    create_embeddings
+from app.retrieval.embedder import create_embeddings
+from app.retrieval.vectordb import store_embeddings
+from app.retrieval.retriever import retrieve_context
+
+from app.generation.generator import generate_answer
+
+from app.memory.chat_memory import (
+    initialize_memory,
+    add_message,
+    get_chat_history
 )
 
-from app.retrieval.vectordb import (
-    store_embeddings
-)
-
-from app.retrieval.retriever import (
-    retrieve_context
-)
-
-from app.generation.generator import (
-    generate_answer
-)
-
-# =====================================
+# ---------------------------------
 # PAGE CONFIG
-# =====================================
+# ---------------------------------
 
 st.set_page_config(
-    page_title="Agentic RAG Enterprise",
-    page_icon="IntelligentAssistant",
+    page_title="Enterprise PDF RAG",
     layout="wide"
 )
 
-# =====================================
-# CUSTOM CSS
-# =====================================
+# ---------------------------------
+# MEMORY INIT
+# ---------------------------------
 
-st.markdown("""
-<style>
+initialize_memory()
 
-.block-container{
-    padding-top:2rem;
-    padding-left:8rem;
-    padding-right:8rem;
-}
+if "pdf_indexed" not in st.session_state:
+    st.session_state.pdf_indexed = False
 
-[data-testid="stChatMessage"]{
-    padding:1rem;
-    border-radius:12px;
-    margin-bottom:10px;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# =====================================
+# ---------------------------------
 # TITLE
-# =====================================
+# ---------------------------------
 
-st.title("Agentic RAG Enterprise")
+st.title("📄 Enterprise PDF RAG")
 
-st.markdown(
-    "Enterprise AI Assistant powered by RAG + Gemini"
-)
-
-# =====================================
+# ---------------------------------
 # SIDEBAR
-# =====================================
+# ---------------------------------
 
 with st.sidebar:
 
-    st.header("Upload Knowledge Base")
+    st.header("PDF Upload")
 
-    uploaded_files = st.file_uploader(
-        "Upload PDFs",
-        type=["pdf"],
-        accept_multiple_files=True
+    uploaded_file = st.file_uploader(
+        "Upload PDF",
+        type=["pdf"]
     )
 
-    if st.button("Process Documents"):
+    if st.button("Clear Chat"):
 
-        if uploaded_files:
+        st.session_state.messages = []
 
-            with st.spinner(
-                "Processing PDFs..."
-            ):
+        st.rerun()
 
-                all_chunks = []
+# ---------------------------------
+# PDF PROCESSING
+# ---------------------------------
 
-                for uploaded_file in uploaded_files:
+if uploaded_file:
 
-                    text = load_pdf(
-                        uploaded_file
-                    )
-
-                    chunks = chunk_documents(
-                        text
-                    )
-
-                    all_chunks.extend(
-                        chunks
-                    )
-
-                embeddings = create_embeddings(
-                    all_chunks
-                )
-
-                store_embeddings(
-                    all_chunks,
-                    embeddings
-                )
-
-            st.success(
-                "Documents processed successfully!"
-            )
-
-# =====================================
-# CHAT MEMORY
-# =====================================
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# =====================================
-# DISPLAY CHAT HISTORY
-# =====================================
-
-for message in st.session_state.messages:
-
-    with st.chat_message(
-        message["role"]
+    if (
+        "current_pdf" not in st.session_state
+        or
+        st.session_state.current_pdf
+        != uploaded_file.name
     ):
 
-        st.markdown(
-            message["content"]
+        documents = load_pdf(
+            uploaded_file
         )
 
-# =====================================
-# USER INPUT
-# =====================================
+        chunks = chunk_documents(
+            documents
+        )
+
+        embeddings = create_embeddings(
+            chunks
+        )
+
+        store_embeddings(
+            chunks,
+            embeddings
+        )
+
+        st.session_state.current_pdf = (
+            uploaded_file.name
+        )
+
+        st.success(
+            f"{uploaded_file.name} indexed"
+        )
+
+# ---------------------------------
+# DISPLAY CHAT HISTORY
+# ---------------------------------
+
+for msg in get_chat_history():
+
+    with st.chat_message(
+        msg["role"]
+    ):
+        st.markdown(
+            msg["content"]
+        )
+
+# ---------------------------------
+# CHAT INPUT
+# ---------------------------------
 
 question = st.chat_input(
     "Ask anything about your documents..."
 )
 
-# =====================================
+# ---------------------------------
 # QUESTION ANSWERING
-# =====================================
+# ---------------------------------
 
 if question:
 
-    # USER MESSAGE
-    st.session_state.messages.append({
-        "role": "user",
-        "content": question
-    })
+    add_message(
+        "user",
+        question
+    )
 
     with st.chat_message("user"):
 
-        st.markdown(question)
+        st.markdown(
+            question
+        )
 
-    # ASSISTANT
     with st.chat_message("assistant"):
 
-        with st.spinner(
-            "Thinking..."
-        ):
+        with st.spinner("Thinking..."):
 
-            context = retrieve_context(
-                question
-            )
+            try:
 
-            answer = generate_answer(
-                question,
-                context
-            )
+                retrieved = retrieve_context(
+                    question
+                )
 
-            st.markdown(answer)
+                documents = retrieved.get(
+                    "documents",
+                    []
+                )
 
-    # SAVE RESPONSE
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": answer
-    })
+                metadata = retrieved.get(
+                    "metadata",
+                    []
+                )
+
+                distance = retrieved.get(
+                    "distance",
+                    0.5
+                )
+
+                context = "\n\n".join(
+                    documents
+                )
+
+                history = "\n".join(
+                    [
+                        f"{msg['role']}: {msg['content']}"
+                        for msg in get_chat_history()
+                    ]
+                )
+
+                answer = generate_answer(
+                    question,
+                    context,
+                    history
+                )
+
+                st.markdown(
+                    answer
+                )
+
+                confidence = round(
+                    (1 - distance) * 100,
+                    2
+                )
+
+                st.metric(
+                    "Confidence",
+                    f"{confidence}%"
+                )
+
+                if metadata:
+
+                    with st.expander(
+                        "Sources"
+                    ):
+
+                        for item in metadata:
+
+                            st.write(
+                                f"Source: {item.get('source')} | Chunk: {item.get('chunk_id')}"
+                            )
+
+            except Exception as e:
+
+                answer = f"Error: {str(e)}"
+
+                st.error(
+                    answer
+                )
+
+    add_message(
+        "assistant",
+        answer
+    )
+
+    st.rerun()

@@ -1,21 +1,16 @@
-from sentence_transformers import CrossEncoder
+from sentence_transformers import (
+    CrossEncoder
+)
 
-
-def get_reranker():
-
-    reranker = CrossEncoder(
-        "cross-encoder/ms-marco-MiniLM-L-6-v2"
-    )
-
-    return reranker
+reranker = CrossEncoder(
+    "cross-encoder/ms-marco-MiniLM-L-6-v2"
+)
 
 
 def rerank_documents(
     question,
     documents
 ):
-
-    reranker = get_reranker()
 
     pairs = [
         [question, doc]
@@ -32,9 +27,7 @@ def rerank_documents(
         reverse=True
     )
 
-    top_docs = [
+    return [
         doc[0]
         for doc in ranked[:3]
     ]
-
-    return top_docs

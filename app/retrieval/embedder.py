@@ -1,9 +1,12 @@
 from sentence_transformers import SentenceTransformer
 
-# Load model only once
+print("Loading Embedding Model...")
+
 embedding_model = SentenceTransformer(
     "BAAI/bge-base-en-v1.5"
 )
+
+print("Embedding Model Loaded")
 
 
 def get_embedding_model():

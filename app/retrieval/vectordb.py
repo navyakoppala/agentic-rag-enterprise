@@ -1,47 +1,69 @@
-import chromadb
+from app.retrieval.qdrant_client import get_qdrant_client
 
-client = chromadb.PersistentClient(
-    path="./vector_store"
+client = get_qdrant_client()
+
+from qdrant_client.models import (
+    VectorParams,
+    Distance,
+    PointStruct
 )
+
+COLLECTION_NAME = "enterprise_docs"
 
 
 def store_embeddings(
     chunks,
-    embeddings
+    embeddings,
+    pdf_name
 ):
 
     try:
-        client.delete_collection(
-            "enterprise_docs"
+
+        client.get_collection(
+            COLLECTION_NAME
         )
+
     except:
-        pass
 
-    collection = client.create_collection(
-        name="enterprise_docs"
-    )
+        client.create_collection(
+            collection_name=COLLECTION_NAME,
+            vectors_config=VectorParams(
+                size=len(embeddings[0]),
+                distance=Distance.COSINE
+            )
+        )
 
-    ids = [
-        str(i)
-        for i in range(len(chunks))
-    ]
-
-    metadatas = []
+    points = []
 
     for i in range(len(chunks)):
 
-        metadatas.append(
-            {
-                "source": "Uploaded PDF",
-                "chunk_id": i
-            }
+        points.append(
+
+            PointStruct(
+                id=abs(
+                    hash(
+                        pdf_name + str(i)
+                    )
+                ),
+                vector=embeddings[i],
+                payload={
+
+                    "text": chunks[i],
+
+                    "source": pdf_name,
+
+                    "document_name": pdf_name,
+
+                    "chunk_id": i
+
+                }
+            )
+
         )
 
-    collection.add(
-        ids=ids,
-        documents=chunks,
-        embeddings=embeddings,
-        metadatas=metadatas
+    client.upsert(
+        collection_name=COLLECTION_NAME,
+        points=points
     )
 
-    return collection
+    return True

@@ -1,32 +1,11 @@
-# Python cache
-__pycache__/
-*.pyc
-
-# Virtual env
-.venv/
 venv/
-
-# Environment variables
+pycache/
 .env
 
-# Vector DB
-vector_store/
+qdrant_db/
+storage_*
+uploads/
 
-# Streamlit cache
-.streamlit/
-
-# Logs
-logs/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-.venv/
-__pycache__/
-chroma_db/
-.env
+*.bin
+*.lock
 *.pyc
-.DS_Store
-.streamlit/secrets.toml
-.env

@@ -1,6 +1,18 @@
 {
-    "admin": "admin123",
-    "navya": "navya123",
-    "user1": "password123",
-    "kaethika": "123456789@Nv"
+    "admin": {
+        "password": "admin123",
+        "role": "admin"
+    },
+    "Navya": {
+        "password": "1234",
+        "role": "user"
+    },
+    "akansha": {
+        "password": "12345",
+        "role": "user"
+    },
+    "navya": {
+        "password": "12345",
+        "role": "user"
+    }
 }

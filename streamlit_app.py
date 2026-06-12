@@ -1,6 +1,10 @@
 import streamlit as st
 
-from app.auth.auth import authenticate, create_user
+from app.auth.auth import (
+    authenticate,
+    create_user,
+    get_role
+)
 
 from app.ingestion.loader import load_pdf
 from app.ingestion.chunker import chunk_documents
@@ -10,6 +14,16 @@ from app.retrieval.vectordb import store_embeddings
 from app.retrieval.retriever import retrieve_context
 
 from app.generation.generator import generate_answer
+from app.database.analytics import (
+    get_analytics,
+    increment_users,
+    increment_questions,
+    increment_uploads
+)
+from app.database.chat_logs import (
+    save_chat,
+    get_chats
+)
 
 from app.memory.chat_memory import (
     initialize_memory,
@@ -37,7 +51,7 @@ if "documents" not in st.session_state:
 
 if not st.session_state.logged_in:
 
-    st.title(" Enterprise Workspace Login")
+    st.title("Enterprise Workspace Login")
 
     tab1, tab2 = st.tabs(["Login", "Register"])
 
@@ -54,14 +68,28 @@ if not st.session_state.logged_in:
             key="login_pass"
         )
 
-        if st.button("Login"):
+        if st.button(
+            "Login",
+            key="login_btn"
+        ):
 
-            if authenticate(username, password):
+            if authenticate(
+                username,
+                password
+            ):
 
                 st.session_state.logged_in = True
                 st.session_state.username = username
+                st.session_state.role = get_role(
+                    username
+                )
 
-                st.success("Login Successful")
+                increment_users()
+
+                st.success(
+                    "Login Successful"
+                )
+
                 st.rerun()
 
             else:
@@ -83,7 +111,10 @@ if not st.session_state.logged_in:
             key="register_pass"
         )
 
-        if st.button("Create Account"):
+        if st.button(
+            "Create Account",
+            key="register_btn"
+        ):
 
             if create_user(
                 new_user,
@@ -102,57 +133,7 @@ if not st.session_state.logged_in:
 
     st.stop()
 
-
-    uploaded_file = st.file_uploader(
-    "",
-    type=["pdf"],
-    label_visibility="collapsed"
-)
-
-
 initialize_memory()
-
-with st.sidebar:
-
-    st.success(
-        f"{st.session_state.username}"
-    )
-
-    st.header(" Documents")
-
-    uploaded_file = st.file_uploader(
-        "Upload PDF",
-        type=["pdf"]
-    )
-
-    for doc in st.session_state.documents:
-
-        if st.button(
-            doc,
-            use_container_width=True
-        ):
-            st.session_state.current_pdf = doc
-            st.rerun()
-
-    st.divider()
-
-    if st.button(
-        " Clear Chat",
-        use_container_width=True
-    ):
-        st.session_state.messages = []
-        st.rerun()
-
-    st.divider()
-
-    if st.button(
-        " Logout",
-        use_container_width=True
-    ):
-        st.session_state.logged_in = False
-        st.session_state.username = None
-        st.rerun()
-
 
 with st.sidebar:
 
@@ -160,18 +141,47 @@ with st.sidebar:
         f" {st.session_state.username}"
     )
 
-    st.header(" Documents")
+    if st.session_state.role == "admin":
 
-    for i, doc in enumerate(st.session_state.documents):
+        st.subheader(" Analytics")
 
-        if st.button(
-        doc,
-        key=f"doc_{i}",
-        use_container_width=True
+        analytics = get_analytics()
+
+        st.metric(
+            "Users",
+            analytics["total_users"]
+        )
+
+        st.metric(
+            "Questions",
+            analytics["total_questions"]
+        )
+
+        st.metric(
+            "Uploads",
+            analytics["total_uploads"]
+        )
+
+        st.divider()
+
+    st.header("Documents")
+
+    uploaded_file = st.file_uploader(
+        "Upload PDF",
+        type=["pdf"]
+    )
+
+    for i, doc in enumerate(
+        st.session_state.documents
     ):
 
-            st.session_state.current_pdf = doc
+        if st.button(
+            doc,
+            key=f"doc_{i}",
+            use_container_width=True
+        ):
 
+            st.session_state.current_pdf = doc
             st.rerun()
 
     st.divider()
@@ -180,10 +190,9 @@ with st.sidebar:
         "Clear Chat",
         key="clear_chat_btn",
         use_container_width=True
-   ):
+    ):
 
         st.session_state.messages = []
-
         st.rerun()
 
     st.divider()
@@ -192,10 +201,11 @@ with st.sidebar:
         "Logout",
         key="logout_btn",
         use_container_width=True
-   ):
+    ):
 
         st.session_state.logged_in = False
         st.session_state.username = None
+        st.session_state.role = None
 
         st.rerun()
 

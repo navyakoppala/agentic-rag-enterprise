@@ -83,4 +83,8 @@ README.md
 * Document Summarization
 * Agent Routing
 * Hybrid Search
+<<<<<<< HEAD
 * Role-based Access Control
+=======
+* Role-based Access Control
+>>>>>>> 4882087 (Added admin panel, analytics, chat logs, and document workspace updates)

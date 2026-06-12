@@ -6,9 +6,14 @@ USERS_FILE = "app/auth/users.json"
 
 def load_users():
 
-    if not os.path.exists(
-        USERS_FILE
-    ):
+    if not os.path.exists(USERS_FILE):
+
+        default_users = {
+            "admin": {
+                "password": "admin123",
+                "role": "admin"
+            }
+        }
 
         with open(
             USERS_FILE,
@@ -16,8 +21,9 @@ def load_users():
         ) as f:
 
             json.dump(
-                {},
-                f
+                default_users,
+                f,
+                indent=4
             )
 
     with open(
@@ -52,7 +58,10 @@ def create_user(
     if username in users:
         return False
 
-    users[username] = password
+    users[username] = {
+        "password": password,
+        "role": "user"
+    }
 
     save_users(users)
 
@@ -68,5 +77,15 @@ def authenticate(
 
     return (
         username in users
-        and users[username] == password
+        and users[username]["password"] == password
     )
+
+
+def get_role(username):
+
+    users = load_users()
+
+    if username in users:
+        return users[username]["role"]
+
+    return "user"

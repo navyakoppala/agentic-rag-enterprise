@@ -3,7 +3,7 @@ from sentence_transformers import SentenceTransformer
 print("Loading Embedding Model...")
 
 embedding_model = SentenceTransformer(
-     "sentence-transformers/all-MiniLM-L6-v2"
+     "BAAI/bge-base-en-v1.5"
 )
 
 print("Embedding Model Loaded")

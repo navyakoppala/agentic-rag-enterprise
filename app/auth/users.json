@@ -14,5 +14,9 @@
     "navya": {
         "password": "12345",
         "role": "user"
+    },
+    "Navya Thogata": {
+        "password": "123456",
+        "role": "user"
     }
 }

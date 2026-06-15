@@ -1,10 +1,10 @@
 import streamlit as st
 
 from app.auth.auth import (
-    authenticate,
-    create_user,
-    get_role
-)
+        authenticate,
+        create_user,
+        get_role
+    )
 
 from app.ingestion.loader import load_pdf
 from app.ingestion.chunker import chunk_documents
@@ -15,26 +15,26 @@ from app.retrieval.retriever import retrieve_context
 
 from app.generation.generator import generate_answer
 from app.database.analytics import (
-    get_analytics,
-    increment_users,
-    increment_questions,
-    increment_uploads
-)
+        get_analytics,
+        increment_users,
+        increment_questions,
+        increment_uploads
+    )
 from app.database.chat_logs import (
-    save_chat,
-    get_chats
-)
+        save_chat,
+        get_chats
+    )
 
 from app.memory.chat_memory import (
-    initialize_memory,
-    add_message,
-    get_chat_history
-)
+        initialize_memory,
+        add_message,
+        get_chat_history
+    )
 
 st.set_page_config(
-    page_title="Enterprise Document Workspace",
-    layout="wide"
-)
+        page_title="Enterprise Document Workspace",
+        layout="wide"
+    )
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -63,284 +63,284 @@ if not st.session_state.logged_in:
         )
 
         password = st.text_input(
-            "Password",
-            type="password",
-            key="login_pass"
-        )
+                "Password",
+                type="password",
+                key="login_pass"
+            )
 
         if st.button(
-            "Login",
-            key="login_btn"
-        ):
-
-            if authenticate(
-                username,
-                password
+                "Login",
+                key="login_btn"
             ):
 
-                st.session_state.logged_in = True
-                st.session_state.username = username
-                st.session_state.role = get_role(
-                    username
-                )
+                if authenticate(
+                    username,
+                    password
+                ):
 
-                increment_users()
+                    st.session_state.logged_in = True
+                    st.session_state.username = username
+                    st.session_state.role = get_role(
+                        username
+                    )
 
-                st.success(
-                    "Login Successful"
-                )
+                    increment_users()
 
+                    st.success(
+                        "Login Successful"
+                    )
+
+                    st.rerun()
+
+                else:
+
+                    st.error(
+                        "Invalid Username or Password"
+                    )
+
+        with tab2:
+
+            new_user = st.text_input(
+                "New Username",
+                key="register_user"
+            )
+
+            new_pass = st.text_input(
+                "New Password",
+                type="password",
+                key="register_pass"
+            )
+
+            if st.button(
+                "Create Account",
+                key="register_btn"
+            ):
+
+                if create_user(
+                    new_user,
+                    new_pass
+                ):
+
+                    st.success(
+                        "Account Created Successfully"
+                    )
+
+                else:
+
+                    st.error(
+                        "User Already Exists"
+                    )
+
+        st.stop()
+
+    initialize_memory()
+
+    with st.sidebar:
+
+        st.success(
+            f" {st.session_state.username}"
+        )
+
+        if st.session_state.role == "admin":
+
+            st.subheader(" Analytics")
+
+            analytics = get_analytics()
+
+            st.metric(
+                "Users",
+                analytics["total_users"]
+            )
+
+            st.metric(
+                "Questions",
+                analytics["total_questions"]
+            )
+
+            st.metric(
+                "Uploads",
+                analytics["total_uploads"]
+            )
+
+            st.divider()
+
+        st.header("Documents")
+
+        uploaded_file = st.file_uploader(
+            "Upload PDF",
+            type=["pdf"]
+        )
+
+        for i, doc in enumerate(
+            st.session_state.documents
+        ):
+
+            if st.button(
+                doc,
+                key=f"doc_{i}",
+                use_container_width=True
+            ):
+
+                st.session_state.current_pdf = doc
                 st.rerun()
-
-            else:
-
-                st.error(
-                    "Invalid Username or Password"
-                )
-
-    with tab2:
-
-        new_user = st.text_input(
-            "New Username",
-            key="register_user"
-        )
-
-        new_pass = st.text_input(
-            "New Password",
-            type="password",
-            key="register_pass"
-        )
-
-        if st.button(
-            "Create Account",
-            key="register_btn"
-        ):
-
-            if create_user(
-                new_user,
-                new_pass
-            ):
-
-                st.success(
-                    "Account Created Successfully"
-                )
-
-            else:
-
-                st.error(
-                    "User Already Exists"
-                )
-
-    st.stop()
-
-initialize_memory()
-
-with st.sidebar:
-
-    st.success(
-        f" {st.session_state.username}"
-    )
-
-    if st.session_state.role == "admin":
-
-        st.subheader(" Analytics")
-
-        analytics = get_analytics()
-
-        st.metric(
-            "Users",
-            analytics["total_users"]
-        )
-
-        st.metric(
-            "Questions",
-            analytics["total_questions"]
-        )
-
-        st.metric(
-            "Uploads",
-            analytics["total_uploads"]
-        )
 
         st.divider()
 
-    st.header("Documents")
-
-    uploaded_file = st.file_uploader(
-        "Upload PDF",
-        type=["pdf"]
-    )
-
-    for i, doc in enumerate(
-        st.session_state.documents
-    ):
-
         if st.button(
-            doc,
-            key=f"doc_{i}",
+            "Clear Chat",
+            key="clear_chat_btn",
             use_container_width=True
         ):
 
-            st.session_state.current_pdf = doc
+            st.session_state.messages = []
             st.rerun()
 
-    st.divider()
+        st.divider()
 
-    if st.button(
-        "Clear Chat",
-        key="clear_chat_btn",
-        use_container_width=True
-    ):
+        if st.button(
+            "Logout",
+            key="logout_btn",
+            use_container_width=True
+        ):
 
-        st.session_state.messages = []
-        st.rerun()
+            st.session_state.logged_in = False
+            st.session_state.username = None
+            st.session_state.role = None
 
-    st.divider()
+            st.rerun()
 
-    if st.button(
-        "Logout",
-        key="logout_btn",
-        use_container_width=True
-    ):
+    if uploaded_file:
 
-        st.session_state.logged_in = False
-        st.session_state.username = None
-        st.session_state.role = None
+        if uploaded_file.name not in st.session_state.documents:
 
-        st.rerun()
-
-if uploaded_file:
-
-    if uploaded_file.name not in st.session_state.documents:
-
-        st.session_state.documents.append(
-            uploaded_file.name
-        )
-
-    if st.session_state.current_pdf != uploaded_file.name:
-
-        with st.spinner("Indexing PDF..."):
-
-            text = load_pdf(
-                uploaded_file
-            )
-
-            chunks = chunk_documents(
-                text
-            )
-
-            embeddings = create_embeddings(
-                chunks
-            )
-
-            store_embeddings(
-                chunks,
-                embeddings,
+            st.session_state.documents.append(
                 uploaded_file.name
             )
 
-            st.session_state.current_pdf = (
-                uploaded_file.name
-            )
+        if st.session_state.current_pdf != uploaded_file.name:
 
-        st.success(
-            f"{uploaded_file.name} indexed successfully"
+            with st.spinner("Indexing PDF..."):
+
+                text = load_pdf(
+                    uploaded_file
+                )
+
+                chunks = chunk_documents(
+                    text
+                )
+
+                embeddings = create_embeddings(
+                    chunks
+                )
+
+                store_embeddings(
+                    chunks,
+                    embeddings,
+                    uploaded_file.name
+                )
+
+                st.session_state.current_pdf = (
+                    uploaded_file.name
+                )
+
+            st.success(
+                f"{uploaded_file.name} indexed successfully"
+            )
+    if st.session_state.current_pdf:
+
+        st.info(
+            f" Current Document: {st.session_state.current_pdf}"
         )
-if st.session_state.current_pdf:
 
-    st.info(
-        f" Current Document: {st.session_state.current_pdf}"
-    )
+    else:
 
-else:
-
-    st.warning(
-        "Upload a PDF to begin."
-    )
-
-for msg in get_chat_history():
-
-    with st.chat_message(
-        msg["role"]
-    ):
-
-        st.markdown(
-            msg["content"]
+        st.warning(
+            "Upload a PDF to begin."
         )
 
-question = st.chat_input(
-    "Ask anything about your documents..."
-)
+    for msg in get_chat_history():
 
+        with st.chat_message(
+            msg["role"]
+        ):
 
-if question and st.session_state.current_pdf:
+            st.markdown(
+                msg["content"]
+            )
 
-    add_message(
-        "user",
-        question
+    question = st.chat_input(
+        "Ask anything about your documents..."
     )
 
-    with st.chat_message("user"):
 
-        st.markdown(question)
+    if question and st.session_state.current_pdf:
 
-    with st.chat_message("assistant"):
+        add_message(
+            "user",
+            question
+        )
 
-        try:
+        with st.chat_message("user"):
 
-            retrieved = retrieve_context(
-                question,
-                st.session_state.current_pdf
-            )
+            st.markdown(question)
 
-            documents = retrieved.get(
-                "documents",
-                []
-            )
+        with st.chat_message("assistant"):
 
-            metadata = retrieved.get(
-                "metadata",
-                []
-            )
+            try:
 
-            context = "\n\n".join(
-                documents
-            )
+                retrieved = retrieve_context(
+                    question,
+                    st.session_state.current_pdf
+                )
 
-            history = "\n".join([
-                f"{m['role']}: {m['content']}"
-                for m in get_chat_history()
-            ])
+                documents = retrieved.get(
+                    "documents",
+                    []
+                )
 
-            answer = generate_answer(
-                question,
-                context,
-                history
-            )
+                metadata = retrieved.get(
+                    "metadata",
+                    []
+                )
 
-            st.markdown(answer)
+                context = "\n\n".join(
+                    documents
+                )
 
-            if metadata:
+                history = "\n".join([
+                    f"{m['role']}: {m['content']}"
+                    for m in get_chat_history()
+                ])
 
-                with st.expander(
-                    " Sources"
-                ):
+                answer = generate_answer(
+                    question,
+                    context,
+                    history
+                )
 
-                    for item in metadata:
+                st.markdown(answer)
 
-                        st.write(
-                            f"{item.get('source')} | Chunk {item.get('chunk_id')}"
-                        )
+                if metadata:
 
-        except Exception as e:
+                    with st.expander(
+                        " Sources"
+                    ):
 
-            answer = f"Error: {str(e)}"
+                        for item in metadata:
 
-            st.error(answer)
+                            st.write(
+                                f"{item.get('source')} | Chunk {item.get('chunk_id')}"
+                            )
 
-    add_message(
-        "assistant",
-        answer
-    )
+            except Exception as e:
 
-    st.rerun()
+                answer = f"Error: {str(e)}"
+
+                st.error(answer)
+
+        add_message(
+            "assistant",
+            answer
+        )
+
+        st.rerun()

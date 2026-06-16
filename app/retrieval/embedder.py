@@ -1,43 +1,35 @@
 from sentence_transformers import SentenceTransformer
 
-print("Loading Embedding Model...")
-
-embedding_model = SentenceTransformer(
-     "BAAI/bge-base-en-v1.5"
-)
-
-print("Embedding Model Loaded")
-
+embedding_model = None
 
 def get_embedding_model():
-    """
-    Returns loaded embedding model
-    """
+    global embedding_model
+
+    if embedding_model is None:
+        print("Loading Embedding Model...")
+        embedding_model = SentenceTransformer(
+            "BAAI/bge-base-en-v1.5"
+        )
+        print("Embedding Model Loaded")
+
     return embedding_model
 
-
 def create_embeddings(chunks):
-    """
-    Creates embeddings for document chunks
-    """
 
-    if not chunks:
-        return []
+    model = get_embedding_model()
 
-    embeddings = embedding_model.encode(
+    embeddings = model.encode(
         chunks,
         normalize_embeddings=True
     )
 
     return embeddings.tolist()
 
-
 def create_query_embedding(query):
-    """
-    Creates embedding for user query
-    """
 
-    embedding = embedding_model.encode(
+    model = get_embedding_model()
+
+    embedding = model.encode(
         query,
         normalize_embeddings=True
     )
